@@ -29,12 +29,11 @@ package com.alibaba.android.vlayout;
  */
 public class MismatchChildCountException extends RuntimeException {
 
+  public MismatchChildCountException(String msg) {
+    super(msg);
+  }
 
-    public MismatchChildCountException(String msg) {
-        super(msg);
-    }
-
-    public MismatchChildCountException(String msg, Throwable cause) {
-        super(msg, cause);
-    }
+  public MismatchChildCountException(String msg, Throwable cause) {
+    super(msg, cause);
+  }
 }

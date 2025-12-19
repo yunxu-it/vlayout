@@ -37,20 +37,19 @@ import android.view.View;
  */
 public final class LayoutView extends View {
 
-    public LayoutView(Context context) {
-        super(context);
-    }
+  public LayoutView(Context context) {
+    super(context);
+  }
 
-    public LayoutView(Context context, AttributeSet attrs) {
-        super(context, attrs);
-    }
+  public LayoutView(Context context, AttributeSet attrs) {
+    super(context, attrs);
+  }
 
-    public LayoutView(Context context, AttributeSet attrs, int defStyleAttr) {
-        super(context, attrs, defStyleAttr);
-    }
+  public LayoutView(Context context, AttributeSet attrs, int defStyleAttr) {
+    super(context, attrs, defStyleAttr);
+  }
 
-    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
-    public LayoutView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
-        super(context, attrs, defStyleAttr, defStyleRes);
-    }
+  @TargetApi(Build.VERSION_CODES.LOLLIPOP) public LayoutView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+    super(context, attrs, defStyleAttr, defStyleRes);
+  }
 }

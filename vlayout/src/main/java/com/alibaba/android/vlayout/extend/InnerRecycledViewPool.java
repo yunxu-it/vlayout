@@ -24,11 +24,10 @@
 
 package com.alibaba.android.vlayout.extend;
 
-import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.util.SparseIntArray;
 import android.view.View;
-
+import androidx.recyclerview.widget.RecyclerView;
 import java.io.Closeable;
 
 /**
@@ -39,143 +38,132 @@ import java.io.Closeable;
  */
 public final class InnerRecycledViewPool extends RecyclerView.RecycledViewPool {
 
-    private static final String TAG = "InnerRecycledViewPool";
+  private static final String TAG = "InnerRecycledViewPool";
 
-    private static int DEFAULT_MAX_SIZE = 20;
+  private static int DEFAULT_MAX_SIZE = 20;
 
-    /*
-     * Wrapped InnerPool
-     */
-    private RecyclerView.RecycledViewPool mInnerPool;
+  /*
+   * Wrapped InnerPool
+   */
+  private RecyclerView.RecycledViewPool mInnerPool;
 
+  private SparseIntArray mScrapLength = new SparseIntArray();
+  private SparseIntArray mMaxScrap = new SparseIntArray();
 
-    private SparseIntArray mScrapLength = new SparseIntArray();
-    private SparseIntArray mMaxScrap = new SparseIntArray();
+  /**
+   * Wrap an existing pool
+   */
+  public InnerRecycledViewPool(RecyclerView.RecycledViewPool pool) {
+    this.mInnerPool = pool;
+  }
 
-    /**
-     * Wrap an existing pool
-     *
-     * @param pool
-     */
-    public InnerRecycledViewPool(RecyclerView.RecycledViewPool pool) {
-        this.mInnerPool = pool;
+  public InnerRecycledViewPool() {
+    this(new RecyclerView.RecycledViewPool());
+  }
+
+  @Override public void clear() {
+    for (int i = 0, size = mScrapLength.size(); i < size; i++) {
+      int viewType = mScrapLength.keyAt(i);
+      RecyclerView.ViewHolder holder = mInnerPool.getRecycledView(viewType);
+      while (holder != null) {
+        destroyViewHolder(holder);
+        holder = mInnerPool.getRecycledView(viewType);
+      }
     }
 
+    mScrapLength.clear();
+    super.clear();
+  }
 
-    public InnerRecycledViewPool() {
-        this(new RecyclerView.RecycledViewPool());
+  @Override public void setMaxRecycledViews(int viewType, int max) {
+    // When viewType is changed, because can not get items in wrapped pool,
+    // destroy all the items for the viewType
+    RecyclerView.ViewHolder holder = mInnerPool.getRecycledView(viewType);
+    while (holder != null) {
+      destroyViewHolder(holder);
+      holder = mInnerPool.getRecycledView(viewType);
     }
 
-    @Override
-    public void clear() {
-        for (int i = 0, size = mScrapLength.size(); i < size; i++) {
-            int viewType = mScrapLength.keyAt(i);
-            RecyclerView.ViewHolder holder = mInnerPool.getRecycledView(viewType);
-            while (holder != null) {
-                destroyViewHolder(holder);
-                holder = mInnerPool.getRecycledView(viewType);
-            }
-        }
+    // change maxRecycledViews
+    this.mMaxScrap.put(viewType, max);
+    this.mScrapLength.put(viewType, 0);
+    mInnerPool.setMaxRecycledViews(viewType, max);
+  }
 
-        mScrapLength.clear();
-        super.clear();
+  @Override public RecyclerView.ViewHolder getRecycledView(int viewType) {
+    RecyclerView.ViewHolder holder = mInnerPool.getRecycledView(viewType);
+    if (holder != null) {
+      int scrapHeapSize = mScrapLength.indexOfKey(viewType) >= 0 ? this.mScrapLength.get(viewType) : 0;
+      if (scrapHeapSize > 0) mScrapLength.put(viewType, scrapHeapSize - 1);
     }
 
-    @Override
-    public void setMaxRecycledViews(int viewType, int max) {
-        // When viewType is changed, because can not get items in wrapped pool,
-        // destroy all the items for the viewType
-        RecyclerView.ViewHolder holder = mInnerPool.getRecycledView(viewType);
-        while (holder != null) {
-            destroyViewHolder(holder);
-            holder = mInnerPool.getRecycledView(viewType);
-        }
+    return holder;
+  }
 
-        // change maxRecycledViews
-        this.mMaxScrap.put(viewType, max);
-        this.mScrapLength.put(viewType, 0);
-        mInnerPool.setMaxRecycledViews(viewType, max);
+  /**
+   * Get all items size in current pool
+   *
+   * @return the size of items in ViewPool
+   */
+  public int size() {
+    int count = 0;
+
+    for (int i = 0, size = mScrapLength.size(); i < size; i++) {
+      int val = mScrapLength.valueAt(i);
+      count += val;
     }
 
-    @Override
-    public RecyclerView.ViewHolder getRecycledView(int viewType) {
-        RecyclerView.ViewHolder holder = mInnerPool.getRecycledView(viewType);
-        if (holder != null) {
-            int scrapHeapSize = mScrapLength.indexOfKey(viewType) >= 0 ? this.mScrapLength.get(viewType) : 0;
-            if (scrapHeapSize > 0)
-                mScrapLength.put(viewType, scrapHeapSize - 1);
-        }
+    return count;
+  }
 
-        return holder;
+  /**
+   * This will be only run in UI Thread
+   *
+   * @param scrap ViewHolder scrap that will be recycled
+   */
+  @SuppressWarnings("unchecked") public void putRecycledView(RecyclerView.ViewHolder scrap) {
+    int viewType = scrap.getItemViewType();
+
+    if (mMaxScrap.indexOfKey(viewType) < 0) {
+      // does't contains this viewType, initial scrap list
+      mMaxScrap.put(viewType, DEFAULT_MAX_SIZE);
+      setMaxRecycledViews(viewType, DEFAULT_MAX_SIZE);
     }
 
+    // get current heap size
+    int scrapHeapSize = mScrapLength.indexOfKey(viewType) >= 0 ? this.mScrapLength.get(viewType) : 0;
 
-    /**
-     * Get all items size in current pool
-     *
-     * @return the size of items in ViewPool
-     */
-    public int size() {
-        int count = 0;
+    if (this.mMaxScrap.get(viewType) > scrapHeapSize) {
+      // if exceed current heap size
+      mInnerPool.putRecycledView(scrap);
+      mScrapLength.put(viewType, scrapHeapSize + 1);
+    } else {
+      // destroy viewHolder
+      destroyViewHolder(scrap);
+    }
+  }
 
-        for (int i = 0, size = mScrapLength.size(); i < size; i++) {
-            int val = mScrapLength.valueAt(i);
-            count += val;
-        }
-
-        return count;
+  private void destroyViewHolder(RecyclerView.ViewHolder holder) {
+    View view = holder.itemView;
+    // if view inherits {@link Closeable}, cal close method
+    if (view instanceof Closeable) {
+      try {
+        ((Closeable) view).close();
+      } catch (Exception e) {
+        Log.w(TAG, Log.getStackTraceString(e), e);
+      }
     }
 
-    /**
-     * This will be only run in UI Thread
-     *
-     * @param scrap ViewHolder scrap that will be recycled
-     */
-    @SuppressWarnings("unchecked")
-    public void putRecycledView(RecyclerView.ViewHolder scrap) {
-        int viewType = scrap.getItemViewType();
-
-        if (mMaxScrap.indexOfKey(viewType) < 0) {
-            // does't contains this viewType, initial scrap list
-            mMaxScrap.put(viewType, DEFAULT_MAX_SIZE);
-            setMaxRecycledViews(viewType, DEFAULT_MAX_SIZE);
-        }
-
-        // get current heap size
-        int scrapHeapSize = mScrapLength.indexOfKey(viewType) >= 0 ? this.mScrapLength.get(viewType) : 0;
-
-        if (this.mMaxScrap.get(viewType) > scrapHeapSize) {
-            // if exceed current heap size
-            mInnerPool.putRecycledView(scrap);
-            mScrapLength.put(viewType, scrapHeapSize + 1);
-        } else {
-            // destroy viewHolder
-            destroyViewHolder(scrap);
-        }
+    if (holder instanceof Closeable) {
+      try {
+        ((Closeable) holder).close();
+      } catch (Exception e) {
+        Log.w(TAG, Log.getStackTraceString(e), e);
+      }
     }
+  }
 
-
-    private void destroyViewHolder(RecyclerView.ViewHolder holder) {
-        View view = holder.itemView;
-        // if view inherits {@link Closeable}, cal close method
-        if (view instanceof Closeable) {
-            try {
-                ((Closeable) view).close();
-            } catch (Exception e) {
-                Log.w(TAG, Log.getStackTraceString(e), e);
-            }
-        }
-
-        if (holder instanceof Closeable) {
-            try {
-                ((Closeable) holder).close();
-            } catch (Exception e) {
-                Log.w(TAG, Log.getStackTraceString(e), e);
-            }
-        }
-    }
-
-    public void setDefaultMaxSize(int maxSize) {
-        DEFAULT_MAX_SIZE = maxSize;
-    }
+  public void setDefaultMaxSize(int maxSize) {
+    DEFAULT_MAX_SIZE = maxSize;
+  }
 }

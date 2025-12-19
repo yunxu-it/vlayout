@@ -24,9 +24,8 @@
 
 package com.alibaba.android.vlayout;
 
-import android.support.annotation.NonNull;
-import android.support.v7.widget.RecyclerView;
-
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
 
 /**
@@ -34,20 +33,17 @@ import java.util.List;
  */
 public abstract class VirtualLayoutAdapter<VH extends RecyclerView.ViewHolder> extends RecyclerView.Adapter<VH> {
 
-    @NonNull
-    protected VirtualLayoutManager mLayoutManager;
+  @NonNull protected VirtualLayoutManager mLayoutManager;
 
-    public VirtualLayoutAdapter(@NonNull VirtualLayoutManager layoutManager) {
-        this.mLayoutManager = layoutManager;
-    }
+  public VirtualLayoutAdapter(@NonNull VirtualLayoutManager layoutManager) {
+    this.mLayoutManager = layoutManager;
+  }
 
-    public void setLayoutHelpers(List<LayoutHelper> helpers) {
-        this.mLayoutManager.setLayoutHelpers(helpers);
-    }
+  public void setLayoutHelpers(List<LayoutHelper> helpers) {
+    this.mLayoutManager.setLayoutHelpers(helpers);
+  }
 
-    @NonNull
-    public List<LayoutHelper> getLayoutHelpers() {
-        return this.mLayoutManager.getLayoutHelpers();
-    }
-
+  @NonNull public List<LayoutHelper> getLayoutHelpers() {
+    return this.mLayoutManager.getLayoutHelpers();
+  }
 }

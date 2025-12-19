@@ -1,58 +1,60 @@
-apply plugin: 'com.android.application'
-
-/*
- * MIT License
- *
- * Copyright (c) 2016 Alibaba Group
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
-
-// apply plugin: 'view-inspector'
-
+plugins {
+  id 'com.android.application'
+}
 
 android {
-    compileSdkVersion Integer.parseInt(System.properties['compileSdkVersion'])
-    buildToolsVersion System.properties['buildToolsVersion']
+  // 1. AGP 8.0+ 必须显式声明 namespace
+  namespace 'com.alibaba.android.vlayout.example'
 
-    defaultConfig {
-        applicationId "com.alibaba.android.vlayout.example"
-        minSdkVersion 14
-        targetSdkVersion Integer.parseInt(System.properties['targetSdkVersion'])
-        versionCode 1
-        versionName "1.0"
+  // 2. 建议直接指定 SDK 版本，不要从 System.properties 读取，避免为空报错
+  compileSdk 35
+
+  defaultConfig {
+    applicationId "com.alibaba.android.vlayout.example"
+    // 3. 提升 minSdk，现代库通常要求 21+ (Android 5.0)
+    minSdk 21
+    targetSdk 34
+    versionCode 1
+    versionName "1.0"
+  }
+
+  buildTypes {
+    debug {
+      minifyEnabled false
+      debuggable true
+      proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
     }
-    buildTypes {
-        debug {
-            minifyEnabled false
-            debuggable true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-    }
+  }
+
+  // 4. 必须配置 Java 编译版本，以匹配 AGP 8.x 的要求
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile project(':vlayout')
-    compile 'com.crittercism.dexmaker:dexmaker:1.4'
-    compile 'com.squareup.picasso:picasso:2.5.2'
-    compile 'com.android.support:appcompat-v7:21.0.0'
-    compile 'com.android.support:support-annotations:21.0.0'
-    compile 'com.android.support:cardview-v7:23.1.1'
+  implementation fileTree(dir: 'libs', include: ['*.jar'])
+
+  // 5. 引用本地模块
+  implementation project(':vlayout')
+
+  // 6. 替换过时的测试/工具库 (Dexmaker 1.4 太老了，如果只是Demo不跑测试，可以先注释掉)
+  // implementation 'com.crittercism.dexmaker:dexmaker:1.4'
+
+  // 7. 图片加载库 (Picasso 2.5.2 -> 2.8)
+  //implementation 'com.squareup.picasso:picasso:2.8'
+
+  // 8. ⚠️【重点】从 Support 库迁移到 AndroidX
+  // com.android.support:appcompat-v7 -> androidx.appcompat:appcompat
+  implementation 'androidx.appcompat:appcompat:1.7.0'
+
+  // com.android.support:support-annotations -> androidx.annotation:annotation
+  implementation 'androidx.annotation:annotation:1.8.0'
+
+  // com.android.support:cardview-v7 -> androidx.cardview:cardview
+  implementation 'androidx.cardview:cardview:1.0.0'
+
+  // 如果用了 RecyclerView (VLayout 核心依赖)，通常还需要这个
+  implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.2.0'
 }

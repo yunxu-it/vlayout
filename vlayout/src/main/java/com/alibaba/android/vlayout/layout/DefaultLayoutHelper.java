@@ -31,14 +31,13 @@ import com.alibaba.android.vlayout.LayoutHelper;
  */
 public class DefaultLayoutHelper extends LinearLayoutHelper {
 
-    public static LayoutHelper newHelper(int itemCount) {
-        DefaultLayoutHelper helper = new DefaultLayoutHelper();
-        helper.setItemCount(itemCount);
-        return helper;
-    }
+  public static LayoutHelper newHelper(int itemCount) {
+    DefaultLayoutHelper helper = new DefaultLayoutHelper();
+    helper.setItemCount(itemCount);
+    return helper;
+  }
 
-    @Override
-    public boolean isOutOfRange(int position) {
-        return false;
-    }
+  @Override public boolean isOutOfRange(int position) {
+    return false;
+  }
 }
